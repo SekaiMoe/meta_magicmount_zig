@@ -63,7 +63,8 @@ jobs:
         run: |
           git fetch origin
           git switch public
-          cp build/*.json ./
-          git add *.json
+          cat build/update.json > update.json
+          cat build/changelog.md > changelog.md
+          git add update.json changelog.md
           git commit -m "[skip ci] Update build json files"
           git push origin public
