@@ -24,7 +24,7 @@ static void usage(const char *prog)
             "  -m DIR     module dir (default: %s)\n"
             "  -t DIR     temp dir   (default: auto rw tmpfs + \".magic_mount\")\n"
             "  -s SRC     mount src  (default: %s)\n"
-            "  -p LIST    extra partitions, comma-separated (e.g. mi_ext,my_stock)\n"
+            "  -p LIST    extra partitions, comma-separated (e.g. odm,mi_ext,my_stock)\n"
             "  -l FILE    log file   (default: stderr, '-'=stdout)\n"
             "  -c FILE    config file (default: " DEFAULT_CONFIG_PATH ")\n"
             "  -v         enable debug logging (default: info)\n"

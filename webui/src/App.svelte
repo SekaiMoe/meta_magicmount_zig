@@ -543,7 +543,7 @@
               id="partitions-input"
               type="text"
               bind:value={partitionInput}
-              placeholder="mi_ext,my_stock"
+              placeholder="eg. odm,mi_ext,my_stock"
             />
           </div>
 

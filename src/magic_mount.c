@@ -459,7 +459,6 @@ static int handle_all_symlink_compatibility(Node *system)
         "vendor",
         "system_ext",
         "product",
-        "odm",
     };
 
     for (size_t i = 0; i < sizeof(builtin_parts) / sizeof(builtin_parts[0]); ++i) {
@@ -476,6 +475,58 @@ static int handle_all_symlink_compatibility(Node *system)
     }
 
     return 0;
+}
+
+static int collect_partition_from_modules(const char *part_name, Node *parent_node)
+{
+    if (!part_name || !parent_node)
+        return -1;
+
+    DIR *mod_dir = opendir(g_module_dir);
+    if (!mod_dir) {
+        LOGE("opendir %s: %s", g_module_dir, strerror(errno));
+        return -1;
+    }
+
+    struct dirent *mod_de;
+    bool has_any = false;
+    char mod_path[PATH_MAX];
+    char part_path[PATH_MAX];
+
+    while ((mod_de = readdir(mod_dir))) {
+        if (!strcmp(mod_de->d_name, ".") || !strcmp(mod_de->d_name, ".."))
+            continue;
+
+        if (path_join(g_module_dir, mod_de->d_name, mod_path, sizeof(mod_path)) != 0)
+            continue;
+
+        struct stat mod_st;
+        if (stat(mod_path, &mod_st) < 0 || !S_ISDIR(mod_st.st_mode))
+            continue;
+
+        if (module_disabled(mod_path))
+            continue;
+
+        if (path_join(mod_path, part_name, part_path, sizeof(part_path)) != 0)
+            continue;
+
+        if (!path_is_dir(part_path))
+            continue;
+
+        LOGD("collecting %s from module %s", part_name, mod_de->d_name);
+
+        bool sub = false;
+        if (node_collect(parent_node, part_path, mod_de->d_name, &sub) != 0) {
+            closedir(mod_dir);
+            return -1;
+        }
+
+        if (sub)
+            has_any = true;
+    }
+
+    closedir(mod_dir);
+    return has_any ? 0 : 1;
 }
 
 static Node *collect_root(void)
@@ -555,11 +606,9 @@ static Node *collect_root(void)
 
     g_stats.nodes_total += 2;
 
-    // ============ 处理 Symlink 兼容性 ============
     if (handle_all_symlink_compatibility(system) != 0) {
         LOGW("symlink compatibility handling encountered errors (continuing anyway)");
     }
-    // ============================================
 
     struct {
         const char *name;
@@ -568,14 +617,12 @@ static Node *collect_root(void)
         { "vendor",     true },
         { "system_ext", true },
         { "product",    true },
-        { "odm",        false },
     };
 
     char rp[PATH_MAX];
     char sp[PATH_MAX];
 
-    for (size_t i = 0; i < sizeof(builtin_parts) / sizeof(builtin_parts[0]);
-         ++i) {
+    for (size_t i = 0; i < sizeof(builtin_parts) / sizeof(builtin_parts[0]); ++i) {
         if (path_join("/", builtin_parts[i].name, rp, sizeof(rp)) != 0 ||
             path_join("/system", builtin_parts[i].name, sp, sizeof(sp)) != 0) {
             node_free(root);
@@ -610,8 +657,27 @@ static Node *collect_root(void)
         if (!path_is_dir(rp))
             continue;
 
-        Node *child = node_take_child(system, name);
-        if (child && node_add_child(root, child) != 0) {
+        Node *child = node_new(name, NFT_DIRECTORY);
+        if (!child) {
+            node_free(root);
+            node_free(system);
+            return NULL;
+        }
+
+        int ret = collect_partition_from_modules(name, child);
+        if (ret == 0) {
+            LOGI("collected extra partition %s from module root", name);
+            
+            if (node_add_child(root, child) != 0) {
+                node_free(child);
+                node_free(root);
+                node_free(system);
+                return NULL;
+            }
+        } else if (ret == 1) {
+            node_free(child);
+            LOGD("no content found for extra partition %s", name);
+        } else {
             node_free(child);
             node_free(root);
             node_free(system);
@@ -627,6 +693,7 @@ static Node *collect_root(void)
 
     return root;
 }
+
 
 static int clone_symlink(const char *src, const char *dst)
 {
