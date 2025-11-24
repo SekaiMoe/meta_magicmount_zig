@@ -189,7 +189,8 @@ static bool extra_part_blacklisted(const char *name)
 
     static const char *blacklist[] = { 
         "bin", "etc", "data", "data_mirror", "sdcard", 
-        "tmp", "dev", "sys", "mnt", "proc", "d", "test" 
+        "tmp", "dev", "sys", "mnt", "proc", "d", "test",
+        "product", "vendor", "system_ext", "odm"
     };
     size_t n = sizeof(blacklist) / sizeof(blacklist[0]);
 
@@ -509,7 +510,7 @@ static int symlink_resolve_all_partition_links(MagicMount *ctx, Node *system)
 {
     if (!system) return -1;
 
-    const char *builtin_parts[] = { "vendor", "system_ext", "product" };
+    const char *builtin_parts[] = { "vendor", "system_ext", "product", "odm" };
 
     for (size_t i = 0; i < sizeof(builtin_parts) / sizeof(builtin_parts[0]); ++i) {
         if (symlink_resolve_partition(ctx, system, builtin_parts[i]) != 0) {
@@ -755,12 +756,22 @@ Node *build_mount_tree(MagicMount *ctx)
     }
 
     // Promote builtin partitions to root
-    const char *builtin_parts[] = { "vendor", "system_ext", "product" };
+    struct {
+        const char *name;
+        bool need_symlink;
+    } builtin_parts[] = {
+        { "vendor",     true  },
+        { "system_ext", true  },
+        { "product",    true  },
+        { "odm",        false },
+    };
+
     for (size_t i = 0; i < sizeof(builtin_parts) / sizeof(builtin_parts[0]); ++i) {
-        const char *part = builtin_parts[i];
+        const char *part = builtin_parts[i].name;
+        
         LOGD("build_mount_tree: trying to promote builtin partition '%s' to /", part);
 
-        if (partition_promote_to_root(root, system, part, true) != 0) {
+        if (partition_promote_to_root(root, system, part, builtin_parts[i].need_symlink) != 0) {
             LOGE("build_mount_tree: partition_promote_to_root failed for builtin partition '%s'", part);
             node_free(root);
             node_free(system);
