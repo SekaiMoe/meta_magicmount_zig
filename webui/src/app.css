@@ -48,7 +48,6 @@
   }
 }
 
-
 /* ---------- Base Layout ---------- */
 * {
   box-sizing: border-box;
@@ -186,7 +185,8 @@ body {
   gap: 4px;
 }
 
-.field label {
+.field label,
+.field .field-label {
   font-size: 13px;
   color: var(--nord4);
 }
