@@ -20,6 +20,7 @@ void magic_mount_init(MagicMount *ctx)
     memset(ctx, 0, sizeof(*ctx));
     ctx->module_dir   = DEFAULT_MODULE_DIR;
     ctx->mount_source = DEFAULT_MOUNT_SOURCE;
+    ctx->enable_unmountable = true;
 }
 
 void magic_mount_cleanup(MagicMount *ctx)
@@ -163,7 +164,9 @@ static int mm_apply_node_recursive(MagicMount *ctx,
                  strerror(errno));
             return -1;
         } else if (!strstr(target, ".magic_mount/workdir/")) {
-            ksu_send_unmountable(target);
+            if (ctx->enable_unmountable)
+                ksu_send_unmountable(path);
+
         }
 
         (void)mount(NULL, target, NULL,
@@ -384,7 +387,9 @@ static int mm_apply_node_recursive(MagicMount *ctx,
             LOGI("move mountpoint success: %s -> %s", wpath, path);
             (void)mount(NULL, path, NULL, MS_REC | MS_PRIVATE, NULL);
 
-            ksu_send_unmountable(path);
+            if (ctx->enable_unmountable)
+                ksu_send_unmountable(path);
+
         }
 
         ctx->stats.nodes_mounted++;

@@ -25,6 +25,7 @@ typedef struct {
     const char *log_file;
     const char *partitions;
     bool debug;
+    bool umount;
 } Config;
 
 /* --- Forward declarations --- */
@@ -51,6 +52,7 @@ static void usage(const char *prog)
             "  -l, --log-file FILE       Log file (default: stderr, '-' for stdout)\n"
             "  -c, --config FILE         Config file (default: %s)\n"
             "  -v, --verbose             Enable debug logging\n"
+            "      --no_umount           Disable umount\n"
             "  -h, --help                Show this help message\n"
             "\n",
             VERSION, prog, DEFAULT_MODULE_DIR, DEFAULT_MOUNT_SOURCE,
@@ -108,6 +110,9 @@ static int load_config_file(const char *path, Config *cfg, MagicMount *ctx)
 
         } else if (!strcasecmp(key, "debug")) {
             cfg->debug = str_is_true(val);
+
+        } else if (!strcasecmp(key, "umount")) {
+            cfg->umount = str_is_true(val);
 
         } else if (!strcasecmp(key, "partitions")) {
             cfg->partitions = strdup(val);
@@ -213,6 +218,7 @@ int main(int argc, char **argv)
 {
     MagicMount ctx;
     Config cfg = {0};
+    cfg.umount = true;
     char auto_tmp[PATH_MAX] = {0};
 
     const char *config_path  = DEFAULT_CONFIG_PATH;
@@ -254,6 +260,11 @@ int main(int argc, char **argv)
         tmp_dir = cfg.temp_dir;
     if (cfg.debug)
         log_set_level(LOG_DEBUG);
+    if (cfg.umount)
+        ctx.enable_unmountable = true;
+    else
+        ctx.enable_unmountable = false;
+
 
     for (int i = 1; i < argc; i++) {
         const char *arg = argv[i];
@@ -272,6 +283,9 @@ int main(int argc, char **argv)
 
         } else if (!strcmp(arg, "-v") || !strcmp(arg, "--verbose")) {
             log_set_level(LOG_DEBUG);
+
+        } else if (!strcmp(arg, "--no-umount")) {
+            ctx.enable_unmountable = false;
 
         } else if ((!strcmp(arg, "-p") || !strcmp(arg, "--partitions")) && i + 1 < argc) {
             cli_has_partitions = true;

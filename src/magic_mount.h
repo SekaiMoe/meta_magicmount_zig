@@ -2,6 +2,7 @@
 #define MAGIC_MOUNT_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 #define DISABLE_FILE_NAME      "disable"
 #define REMOVE_FILE_NAME       "remove"
@@ -35,6 +36,8 @@ typedef struct MagicMount {
 
     char **extra_parts;
     int    extra_parts_count;
+
+    bool   enable_unmountable;
 } MagicMount;
 
 /* Initialization ctx (module_dir/mount_source) */
