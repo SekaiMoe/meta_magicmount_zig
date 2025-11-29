@@ -43,16 +43,4 @@ build/
 
 The branch now uses a **C implementation**.
 
-The previous **Rust implementation** is still available in a separate branch for reference:
-
-Rust branch: `rust`
-
-You can switch to the Rust version with:
-
-```bash
-git checkout rust
-```
-
-or:
-
-https://github.com/Tools-cx-app/meta-magic_mount
+The previous **Rust implementation** : [🦀](https://github.com/Tools-cx-app/meta-magic_mount)
