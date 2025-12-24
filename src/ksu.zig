@@ -27,7 +27,7 @@ const LOG_DEBUG = 3;
 
 inline fn LOG(level: i32, comptime fmt: []const u8, args: anytype) void {
     if (level <= @intFromEnum(g_log_level)) {
-        logWrite(level, @ptrCast(@src().file), @intCast(@src().line), fmt, args...);
+        logWrite(level, @ptrCast(@src().file), @intCast(@src().line), fmt, args);
     }
 }
 

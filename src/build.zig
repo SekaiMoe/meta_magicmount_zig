@@ -1,72 +1,56 @@
 const std = @import("std");
 const Builder = std.Build;
 
-// 默认版本
 const default_version = "v0.2.2";
 
 pub fn build(b: *Builder) void {
-    const target_amd64 = b.standardTargetOptions(.{
-        .default_target = .{ .cpu_arch = .x86_64, .os_tag = .linux },
-    });
-    const target_arm64 = b.standardTargetOptions(.{
-        .default_target = .{ .cpu_arch = .aarch64, .os_tag = .linux },
-    });
-    const target_armv7 = b.standardTargetOptions(.{
-        .default_target = .{ .cpu_arch = .arm, .os_tag = .linux, .abi = .eabihf },
-    });
-
     const optimize = b.standardOptimizeOption(.{});
 
-    // 获取版本字符串（可通过 -Dversion=xxx 覆盖）
     const version = b.option([]const u8, "version", "Project version") orelse default_version;
 
-    // 构建选项：传递 VERSION 宏（在 Zig 中通过 --define）
     const exe_options = b.addOptions();
     exe_options.addOption([]const u8, "version", version);
 
-    // 构建函数：为给定目标和优化级别创建可执行文件
-    inline for (.{target_amd64, target_arm64, target_armv7}) |target_opt, i| {
-        const bin_name = switch (i) {
-            0 => "mm_amd64",
-            1 => "mm_arm64",
-            2 => "mm_armv7",
-            else => unreachable,
-        };
+    const targets = [_]struct {
+        name: []const u8,
+        query: std.Target.Query,
+    }{
+        .{ .name = "mm_amd64", .query = .{ .cpu_arch = .x86_64, .os_tag = .linux } },
+        .{ .name = "mm_arm64", .query = .{ .cpu_arch = .aarch64, .os_tag = .linux } },
+        .{ .name = "mm_armv7", .query = .{ .cpu_arch = .arm, .os_tag = .linux, .abi = .eabihf } },
+    };
 
-        const exe = b.addExecutable(.{
-            .name = bin_name,
+    // 创建一个组合步骤来构建所有目标
+    const build_all_step = b.step("build-all", "Build all targets (without installing)");
+
+    inline for (targets) |t| {
+        const root_module = b.createModule(.{
             .root_source_file = b.path("main.zig"),
-            .target = target_opt,
+            .target = b.resolveTargetQuery(t.query),
             .optimize = optimize,
         });
+        root_module.addOptions("build_options", exe_options);
 
-        // 链接为静态（对 Linux 有效）
-        exe.link_libc = false; // 不需要 libc（纯 Zig），若需 libc 则设为 true
-        exe.force_static = true;
-
-        // 传入构建选项（如 VERSION）
-        exe.root_module.addOptions("build_options", exe_options);
-
-        // 确保输出到 bin/
-        const install_step = b.addInstallArtifact(exe, .{
-            .dest_dir = .{ .custom = "bin" },
+        const exe = b.addExecutable(.{
+            .name = t.name,
+            .root_module = root_module,
+            .linkage = .static,
         });
 
-        // 为 release 模式自动 strip
-        if (optimize == .ReleaseSmall or optimize == .ReleaseFast) {
-            const strip_step = b.addStrip(install_step.artifact);
-            strip_step.dest_dir = .{ .custom = "bin" };
-            b.getInstallStep().dependOn(&strip_step.step);
-        } else {
-            b.getInstallStep().dependOn(&install_step.step);
-        }
+        // 为每个目标添加安装步骤（这会自动注册到内置的 install 步骤）
+        const install_step = b.addInstallArtifact(exe, .{});
+        _ = install_step; // 忽略未使用变量警告
 
-        // 为方便，也可添加别名步骤（可选）
-        const alias_step = b.step(bin_name, "Build " ++ bin_name);
-        alias_step.dependOn(&install_step.step);
+        // 创建特定目标的构建步骤（仅构建，不安装）
+        
+        // 创建特定目标的安装步骤
+        const target_install_step = b.step(t.name, "Build and install " ++ t.name);
+        target_install_step.dependOn(&b.addInstallArtifact(exe, .{}).step);
+
+        // 添加到组合构建步骤
+        build_all_step.dependOn(&exe.step);
     }
 
-    // 默认：安装所有（等效于 make all）
-    const all_step = b.step("all", "Build all targets");
-    all_step.dependOn(b.getInstallStep());
+    // 设置默认步骤为构建所有目标（不安装）
+    b.default_step.dependOn(build_all_step);
 }

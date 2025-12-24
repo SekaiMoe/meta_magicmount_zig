@@ -45,7 +45,8 @@ fn usage(prog: []const u8) void {
     }) catch {};
 }
 
-fn load_config_file(allocator: Allocator, path: []const u8, cfg: *Config, ctx: *MagicMount.MagicMount) !void {
+fn load_config_file(allocator: Allocator, path: []const u8, cfg: *Config, _ctx: *MagicMount.MagicMount) !void {
+    _ = _ctx;
     var file = std.fs.cwd().openFile(path, .{}) catch |err| {
         if (err != error.FileNotFound) {
             Utils.LOGW("config file {s}: {s}", .{ path, @errorName(err) });
@@ -116,7 +117,8 @@ fn parse_partitions(allocator: Allocator, list: []const u8, ctx: *MagicMount.Mag
     }
 }
 
-fn setup_logging(allocator: Allocator, log_path: []const u8) !?std.fs.File {
+fn setup_logging(_allocator: Allocator, log_path: []const u8) !?std.fs.File {
+    _ = _allocator;
     if (std.mem.eql(u8, log_path, "-")) {
         return null; // Use stdout (handled by logSetFile(null))
     }
@@ -228,7 +230,7 @@ pub fn main() !u8 {
 
     // Second pass: handle all args
     i = 1;
-    while (i < args.len) {
+    while (i < args.len) : (i += 1) {
         const arg = args[i];
         const consume_next = struct {
             fn next() ![]const u8 {

@@ -10,11 +10,11 @@ pub const SELINUX_XATTR = "security.selinux";
 pub const DEFAULT_TEMP_DIR = "/dev/.magic_mount";
 
 // --- Logging ---
-pub const LogLevel = enum(i32) {
-    error = 0,
-    warn = 1,
-    info = 2,
-    debug = 3,
+pub const LogLevel = packed enum(i32) {
+    debug = 0,
+    info = 1,
+    warn = 2,
+    error = 3,
 };
 
 var g_log_level: LogLevel = .info;
