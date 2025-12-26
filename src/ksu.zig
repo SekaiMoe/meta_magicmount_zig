@@ -23,6 +23,7 @@ const KsuAddTryUmountCmd = extern struct {
 extern fn logWrite(level: i32, file: [*:0]const u8, line: c_int, fmt: [*:0]const u8, ...) void;
 const LOG_ERROR = 0;
 const LOG_WARN = 1;
+const LOG_INFO = 2;
 const LOG_DEBUG = 3;
 
 inline fn LOG(level: i32, comptime fmt: []const u8, args: anytype) void {

@@ -229,20 +229,9 @@ pub fn main() !u8 {
     ctx.enable_unmountable = cfg.umount;
 
     // Second pass: handle all args
-    i = 1;
-    while (i < args.len) : (i += 1) {
-        const arg = args[i];
-        const consume_next = struct {
-            fn next() ![]const u8 {
-                if (i + 1 >= args.len) {
-                    std.debug.print("Error: Missing value for {s}\n", .{arg});
-                    usage(prog);
-                    return error.MissingArgument;
-                }
-                i += 1;
-                return args[i];
-            }
-        };
+    var j: usize = 1;
+    while (j < args.len) : (j += 1) {
+        const arg = args[j];
 
         if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
             usage(prog);
@@ -251,46 +240,64 @@ pub fn main() !u8 {
 
         if (std.mem.eql(u8, arg, "-v") or std.mem.eql(u8, arg, "--verbose")) {
             Utils.logSetLevel(.debug);
-            i += 1;
             continue;
         }
 
         if (std.mem.eql(u8, arg, "--no-umount")) {
             ctx.enable_unmountable = false;
-            i += 1;
             continue;
         }
 
         if (std.mem.eql(u8, arg, "-c") or std.mem.eql(u8, arg, "--config") or
             std.mem.eql(u8, arg, "-l") or std.mem.eql(u8, arg, "--log-file"))
         {
-            i += 2;
+            j += 1;
             continue;
         }
 
         if ((std.mem.eql(u8, arg, "-m") or std.mem.eql(u8, arg, "--module-dir"))) {
-            ctx.module_dir = try consume_next.next();
-            i += 1;
+            if (j + 1 >= args.len) {
+                std.debug.print("Error: Missing value for {s}\n", .{arg});
+                usage(prog);
+                return error.MissingArgument;
+            }
+            j += 1;
+            ctx.module_dir = args[j];
             continue;
         }
 
         if ((std.mem.eql(u8, arg, "-t") or std.mem.eql(u8, arg, "--temp-dir"))) {
-            tmp_dir = try consume_next.next();
-            i += 1;
+            if (j + 1 >= args.len) {
+                std.debug.print("Error: Missing value for {s}\n", .{arg});
+                usage(prog);
+                return error.MissingArgument;
+            }
+            j += 1;
+            tmp_dir = args[j];
             continue;
         }
 
         if ((std.mem.eql(u8, arg, "-s") or std.mem.eql(u8, arg, "--mount-source"))) {
-            ctx.mount_source = try consume_next.next();
-            i += 1;
+            if (j + 1 >= args.len) {
+                std.debug.print("Error: Missing value for {s}\n", .{arg});
+                usage(prog);
+                return error.MissingArgument;
+            }
+            j += 1;
+            ctx.mount_source = args[j];
             continue;
         }
 
         if ((std.mem.eql(u8, arg, "-p") or std.mem.eql(u8, arg, "--partitions"))) {
             cli_has_partitions = true;
-            const partitions = try consume_next.next();
+            if (j + 1 >= args.len) {
+                std.debug.print("Error: Missing value for {s}\n", .{arg});
+                usage(prog);
+                return error.MissingArgument;
+            }
+            j += 1;
+            const partitions = args[j];
             try parse_partitions(allocator, partitions, &ctx);
-            i += 1;
             continue;
         }
 

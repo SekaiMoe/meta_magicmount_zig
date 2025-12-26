@@ -1,4 +1,4 @@
-# Magic Mount Metamodule
+# Magic Mount Metamodule rewritten by zig
 [![Latest Release](https://img.shields.io/github/v/release/7a72/meta-magic_mount?label=Latest%20Release)](https://github.com/7a72/meta-magic_mount/releases/latest)
 [![Latest CI](https://img.shields.io/badge/Latest%20CI-Build-orange)](https://nightly.link/7a72/meta-magic_mount/workflows/compile/main)
 
@@ -14,7 +14,7 @@ No compatibility guarantees or technical support will be offered for unofficial 
 To build this project, you must have the following installed:
 
 * **Node.js**
-* **pnpm**
+* **yarn**
 * **Zig**
 
 ### 1. Build WebUI
@@ -22,13 +22,13 @@ To build this project, you must have the following installed:
 ```bash
 cd webui
 pnpm i
-pnpm build
+yarn build
 ```
 
 ### 2. Build Module
 
 ```bash
-bash build.sh --release
+cd src && zig build
 ```
 
 ### 3. Build Output
@@ -41,6 +41,7 @@ build/
 
 ## Misc
 
-The branch now uses a **C implementation**.
+The branch now uses a **Zig implementation**.
 
 The previous **Rust implementation** : [🦀](https://github.com/Tools-cx-app/meta-magic_mount)
+The previous **C implementation** : [C](https://github.com/7a72/meta-magic_mount)

@@ -227,19 +227,24 @@ fn mm_setup_dir_tmpfs(path: [*:0]const u8, wpath: [*:0]const u8, node: *ModuleTr
 
     const st = os.stat(path) catch |err1| {
         if (node.module_path) |mp| {
-            os.stat(mp) catch {
+            const st2 = os.stat(mp) catch {
                 LOG(LOG_ERROR, "no dir meta for {s}", .{path});
                 return err1;
             };
+            try Utils.mkdir_p(wpath);
+            os.chmod(wpath, st2.mode & 0o7777) catch {};
+            os.chown(wpath, st2.uid, st2.gid) catch {};
+            _ = Utils.copy_selcon(mp, wpath);
+            return;
         } else {
             LOG(LOG_ERROR, "no dir meta for {s}", .{path});
             return err1;
         }
-    } else {
-        os.chmod(wpath, st.mode & 0o7777) catch {};
-        os.chown(wpath, st.uid, st.gid) catch {};
-        _ = Utils.copy_selcon(path, wpath);
     };
+
+    os.chmod(wpath, st.mode & 0o7777) catch {};
+    os.chown(wpath, st.uid, st.gid) catch {};
+    _ = Utils.copy_selcon(path, wpath);
 }
 
 // --- Process existing children in original dir ---
